@@ -29,6 +29,11 @@ public class OrderEntity {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    /** Optimistic locking — prevents concurrent async updates from silently overwriting each other. */
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderItemEntity> items = new ArrayList<>();
 
@@ -46,6 +51,8 @@ public class OrderEntity {
     public void setTotalCurrency(String totalCurrency) { this.totalCurrency = totalCurrency; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
     public List<OrderItemEntity> getItems() { return items; }
     public void setItems(List<OrderItemEntity> items) { this.items = items; }
 }

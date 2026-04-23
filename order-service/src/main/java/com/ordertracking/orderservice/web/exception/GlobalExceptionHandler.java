@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
         String detail = ex.getBindingResult().getFieldErrors().stream()
             .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
-            .reduce("", (a, b) -> a + "; " + b);
+            .collect(java.util.stream.Collectors.joining("; "));
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
         pd.setType(URI.create("urn:problem:validation-error"));
         return pd;

@@ -1,6 +1,5 @@
 package com.ordertracking.trackingservice.application.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracking.trackingservice.application.dto.OrderTrackingDto;
 import com.ordertracking.trackingservice.domain.repository.OrderTrackingRepository;
 import com.ordertracking.trackingservice.infrastructure.persistence.mapper.OrderTrackingMapper;
@@ -17,14 +16,14 @@ public class OrderTrackingService {
     private static final Logger log = LoggerFactory.getLogger(OrderTrackingService.class);
 
     private final OrderTrackingRepository orderTrackingRepository;
-    private final ReactiveRedisTemplate<String, Object> redisTemplate;
+    private final ReactiveRedisTemplate<String, OrderTrackingDto> redisTemplate;
     private final OrderTrackingMapper mapper;
 
     @Value("${cache.ttl.order-tracking:300}")
     private long cacheTtl;
 
     public OrderTrackingService(OrderTrackingRepository orderTrackingRepository,
-                                 ReactiveRedisTemplate<String, Object> redisTemplate,
+                                 ReactiveRedisTemplate<String, OrderTrackingDto> redisTemplate,
                                  OrderTrackingMapper mapper) {
         this.orderTrackingRepository = orderTrackingRepository;
         this.redisTemplate = redisTemplate;
@@ -34,7 +33,6 @@ public class OrderTrackingService {
     public Mono<OrderTrackingDto> getOrderTracking(String orderId) {
         String cacheKey = "tracking:" + orderId;
         return redisTemplate.opsForValue().get(cacheKey)
-            .cast(OrderTrackingDto.class)
             .doOnNext(dto -> log.debug("Cache hit for orderId={}", orderId))
             .switchIfEmpty(
                 orderTrackingRepository.findByOrderId(orderId)
