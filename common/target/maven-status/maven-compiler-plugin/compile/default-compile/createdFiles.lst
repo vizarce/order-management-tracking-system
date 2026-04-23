@@ -1,0 +1,7 @@
+com/ordertracking/common/dto/OrderItemDto.class
+com/ordertracking/common/mdc/MdcConstants.class
+com/ordertracking/common/dto/CustomerDto.class
+com/ordertracking/common/event/OrderCreatedEvent.class
+com/ordertracking/common/dto/OrderDto.class
+com/ordertracking/common/dto/ProductDto.class
+com/ordertracking/common/event/OrderStatusUpdatedEvent.class

@@ -1,0 +1,6 @@
+com/ordertracking/orderservice/domain/model/ProductTest.class
+com/ordertracking/orderservice/web/controller/CustomerControllerTest.class
+com/ordertracking/orderservice/domain/model/OrderTest.class
+com/ordertracking/orderservice/web/controller/OrderControllerTest.class
+com/ordertracking/orderservice/domain/model/CustomerTest.class
+com/ordertracking/orderservice/OrderServiceApplicationTests.class
