@@ -17,9 +17,16 @@ public class ReactiveRedisConfig {
     public ReactiveRedisTemplate<String, Object> reactiveRedisTemplate(ReactiveRedisConnectionFactory factory) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
-        mapper.activateDefaultTyping(
-            mapper.getPolymorphicTypeValidator(),
-            ObjectMapper.DefaultTyping.NON_FINAL
+        // Restrict deserialization to known safe packages to prevent arbitrary class loading
+        mapper.activateDefaultTypingAsProperty(
+            com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType("com.ordertracking.")
+                .allowIfSubType("java.util.")
+                .allowIfSubType("java.math.")
+                .allowIfSubType("java.time.")
+                .build(),
+            ObjectMapper.DefaultTyping.NON_FINAL,
+            "@class"
         );
 
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(mapper);

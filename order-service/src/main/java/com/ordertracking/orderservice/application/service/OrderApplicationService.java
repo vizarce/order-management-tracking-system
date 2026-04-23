@@ -38,21 +38,29 @@ public class OrderApplicationService {
         Order order = createOrderUseCase.execute(request);
         orderEventProducer.publishOrderCreated(order);
 
+        // Capture MDC context before the async boundary so log statements inside
+        // the background thread carry the same trace/request correlation IDs.
+        final java.util.Map<String, String> mdcContext = org.slf4j.MDC.getCopyOfContextMap();
+        final String orderId = order.getId().toString();
+
         CompletableFuture.runAsync(() -> {
+            if (mdcContext != null) org.slf4j.MDC.setContextMap(mdcContext);
             try {
                 Thread.sleep(500);
-                log.info("Simulating payment processing for order {}", order.getId());
+                log.info("Simulating payment processing for order {}", orderId);
                 Order managed = orderRepository.findById(order.getId()).orElse(null);
                 if (managed != null) {
                     managed.confirm();
                     orderRepository.save(managed);
-                    log.info("Order {} confirmed (PROCESSING)", order.getId());
+                    log.info("Order {} confirmed (PROCESSING)", orderId);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.warn("Async processing interrupted for order {}", order.getId());
+                log.warn("Async processing interrupted for order {}", orderId);
             } catch (Exception e) {
-                log.error("Async processing failed for order {}", order.getId(), e);
+                log.error("Async processing failed for order {}", orderId, e);
+            } finally {
+                org.slf4j.MDC.clear();
             }
         });
 
