@@ -18,7 +18,7 @@ public class OrderController {
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     public CreateOrderResponse createOrder(@Valid @RequestBody CreateOrderRequest request) {
         return orderApplicationService.createOrder(request);
     }

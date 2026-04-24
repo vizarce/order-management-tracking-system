@@ -26,11 +26,18 @@ public class Product {
     }
 
     public void reduceStock(int quantity) {
+        if (quantity <= 0) throw new com.ordertracking.orderservice.domain.exception.DomainException(
+            "Quantity to reduce must be positive, got: " + quantity);
+        if (this.stockQuantity == null) throw new com.ordertracking.orderservice.domain.exception.DomainException(
+            "Stock quantity is not initialised for product: " + id);
         if (this.stockQuantity < quantity) throw new InsufficientStockException(id, quantity, stockQuantity);
         this.stockQuantity -= quantity;
     }
 
     public void increaseStock(int quantity) {
+        if (quantity <= 0) throw new com.ordertracking.orderservice.domain.exception.DomainException(
+            "Quantity to increase must be positive, got: " + quantity);
+        if (this.stockQuantity == null) this.stockQuantity = 0;
         this.stockQuantity += quantity;
     }
 

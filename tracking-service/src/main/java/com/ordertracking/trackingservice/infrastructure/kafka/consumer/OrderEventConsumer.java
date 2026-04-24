@@ -2,10 +2,9 @@ package com.ordertracking.trackingservice.infrastructure.kafka.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracking.common.event.OrderCreatedEvent;
+import com.ordertracking.common.mdc.MdcConstants;
 import com.ordertracking.trackingservice.application.dto.OrderTrackingDto;
 import com.ordertracking.trackingservice.application.service.OrderTrackingService;
-import com.ordertracking.trackingservice.domain.model.OrderTracking;
-import com.ordertracking.trackingservice.infrastructure.persistence.mapper.OrderTrackingMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +12,7 @@ import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -31,14 +31,24 @@ public class OrderEventConsumer {
         this.orderTrackingService = orderTrackingService;
     }
 
-    @KafkaListener(topics = "orders.events", groupId = "${spring.kafka.consumer.group-id:tracking-service-group}")
+    /**
+     * Topic is read from the application property so it stays consistent with the producer
+     * and can be changed per-environment without recompiling.
+     */
+    @KafkaListener(topics = "${kafka.topics.orders-events:orders.events}",
+                   groupId = "${spring.kafka.consumer.group-id:tracking-service-group}")
     public void consume(ConsumerRecord<String, String> record) {
         try {
-            String traceId = extractHeader(record, "X-Trace-Id");
-            MDC.put("traceId", traceId != null ? traceId : UUID.randomUUID().toString());
-            MDC.put("topic", record.topic());
-            MDC.put("partition", String.valueOf(record.partition()));
-            MDC.put("offset", String.valueOf(record.offset()));
+            // Restore MDC from Kafka headers — blank/empty values are treated as absent
+            // to prevent blank traceIds from appearing in logs.
+            String traceId = extractHeader(record, MdcConstants.HEADER_TRACE_ID);
+            MDC.put(MdcConstants.TRACE_ID,   (traceId   != null && !traceId.isBlank())   ? traceId   : UUID.randomUUID().toString());
+            String requestId = extractHeader(record, MdcConstants.HEADER_REQUEST_ID);
+            if (requestId != null && !requestId.isBlank()) MDC.put(MdcConstants.REQUEST_ID, requestId);
+
+            MDC.put(MdcConstants.TOPIC,     record.topic());
+            MDC.put(MdcConstants.PARTITION, String.valueOf(record.partition()));
+            MDC.put(MdcConstants.OFFSET,    String.valueOf(record.offset()));
 
             log.info("Processing Kafka message");
             processOrder(record.value());
@@ -68,10 +78,13 @@ public class OrderEventConsumer {
                 Instant.now()
             );
 
+            // Block with timeout so Kafka offset is committed only after the tracking
+            // record is actually persisted.  Using subscribe() would make this
+            // fire-and-forget, risking message loss on restart if the write fails.
             orderTrackingService.saveTracking(dto)
                 .doOnSuccess(saved -> log.info("Tracking saved for orderId={}", saved.orderId()))
                 .doOnError(e -> log.error("Failed to save tracking for orderId={}", event.orderId(), e))
-                .subscribe();
+                .block(Duration.ofSeconds(10));
         } catch (Exception e) {
             log.error("Failed to process order event: {}", value, e);
         }

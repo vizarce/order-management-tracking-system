@@ -34,7 +34,9 @@ public class OrderTrackingService {
         String cacheKey = "tracking:" + orderId;
         return redisTemplate.opsForValue().get(cacheKey)
             .doOnNext(dto -> log.debug("Cache hit for orderId={}", orderId))
-            .switchIfEmpty(
+            // Mono.defer ensures findByOrderId is only called (and subscribed to)
+            // when the cache is actually empty — not during chain assembly.
+            .switchIfEmpty(Mono.defer(() ->
                 orderTrackingRepository.findByOrderId(orderId)
                     .map(mapper::toDto)
                     .flatMap(dto ->
@@ -43,7 +45,7 @@ public class OrderTrackingService {
                             .thenReturn(dto)
                     )
                     .doOnNext(dto -> log.debug("Loaded from DB and cached for orderId={}", orderId))
-            );
+            ));
     }
 
     public Mono<OrderTrackingDto> saveTracking(OrderTrackingDto dto) {

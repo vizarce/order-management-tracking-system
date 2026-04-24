@@ -1,7 +1,6 @@
 package com.ordertracking.trackingservice.infrastructure.cache;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ordertracking.trackingservice.application.dto.OrderTrackingDto;
 import org.springframework.context.annotation.Bean;

@@ -13,9 +13,10 @@ spring:
       group-id: tracking-service-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "com.ordertracking.*"
+      # The producer serialises events to JSON manually and sends them as plain Strings.
+      # StringDeserializer must be used so the raw JSON string is passed to the listener.
+      # JsonDeserializer would attempt a second layer of JSON parsing and fail.
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 server:
   port: 8081

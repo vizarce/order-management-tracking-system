@@ -24,8 +24,8 @@ import static org.mockito.Mockito.*;
 class OrderTrackingServiceTest {
 
     @Mock OrderTrackingRepository orderTrackingRepository;
-    @Mock ReactiveRedisTemplate<String, Object> redisTemplate;
-    @Mock ReactiveValueOperations<String, Object> valueOperations;
+    @Mock ReactiveRedisTemplate<String, OrderTrackingDto> redisTemplate;
+    @Mock ReactiveValueOperations<String, OrderTrackingDto> valueOperations;
 
     OrderTrackingMapper mapper = new OrderTrackingMapper();
     OrderTrackingService service;

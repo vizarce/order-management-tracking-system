@@ -18,7 +18,10 @@ spring:
     bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      # The producer serialises the event to JSON manually (ObjectMapper.writeValueAsString)
+      # and sends it as a plain String, so StringSerializer must be used here.
+      # JsonSerializer would add an extra layer of JSON-string encoding.
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 server:
   port: 8080

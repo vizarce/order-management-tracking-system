@@ -13,17 +13,8 @@
     <artifactId>order-service</artifactId>
     <name>order-service</name>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>2023.0.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <!-- Spring Cloud BOM is already imported in the parent pom.xml dependencyManagement;
+         repeating the import here would cause version-management duplication. -->
 
     <dependencies>
         <!-- Spring Boot -->
