@@ -9,8 +9,31 @@ A dual-microservice CQRS system for managing and tracking orders in real time. T
 
 ---
 
+## About
+
+**Order Management & Tracking System** is a production-ready reference implementation of the **CQRS** and **Event-Driven Architecture** patterns using the Java/Spring Boot ecosystem.
+
+| | |
+|---|---|
+| **Short description** | Dual-microservice CQRS order platform — Spring Boot command side (JPA/PostgreSQL/Kafka) + WebFlux query side (MongoDB/Redis) |
+| **Topics / Tags** | `java` · `spring-boot` · `spring-webflux` · `cqrs` · `event-driven` · `kafka` · `postgresql` · `mongodb` · `redis` · `microservices` · `clean-architecture` · `hexagonal-architecture` · `reactive` · `docker` |
+| **License** | MIT |
+| **Java version** | 17 |
+
+### Why this project?
+
+- Demonstrates **CQRS** with a clear write-side (order-service) / read-side (tracking-service) separation.
+- Uses **Kafka** as the durable event bus between services.
+- Showcases **reactive programming** with Project Reactor (WebFlux) on the query side.
+- Implements a **cache-aside** pattern with Redis for low-latency tracking lookups.
+- Applies **Clean / Hexagonal Architecture** with domain, application, infrastructure, and web layers per module.
+- Propagates **distributed tracing** correlation IDs across HTTP, Feign, and Kafka boundaries via SLF4J MDC.
+
+---
+
 ## Table of Contents
 
+- [About](#about)
 - [Architecture](#architecture)
 - [Module Breakdown](#module-breakdown)
 - [Prerequisites](#prerequisites)
