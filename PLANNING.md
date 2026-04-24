@@ -161,7 +161,7 @@ Browser → X-Request-Id → Order Service (write side)
 
 | # | Title | Labels | Size | Priority |
 |---|---|---|---|---|
-| 19 | Security: upgrade logback-classic 1.4.11 → 1.4.12 (CVE fix) | `security` `bug` `sprint: 5` | XS | Critical |
+| 19 | ~~Security: upgrade logback-classic 1.4.11 → 1.4.12 (CVE fix)~~ ✅ | `security` `bug` `sprint: 5` | XS | Critical |
 | 20 | Set up GitHub Actions CI pipeline — build, test, security scan | `ci-cd` `feature` `sprint: 5` | M | High |
 | 21 | Update README — architecture, setup instructions, API reference | `documentation` `sprint: 5` | M | Medium |
 | 22 | Add docker-compose.yml (Kafka, MongoDB, Redis, Zookeeper) | `feature` `module: infrastructure` `sprint: 5` | M | High |
