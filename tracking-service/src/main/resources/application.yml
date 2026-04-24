@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: tracking-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/trackingdb
+    redis:
+      host: localhost
+      port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: tracking-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # The producer serialises events to JSON manually and sends them as plain Strings.
+      # StringDeserializer must be used so the raw JSON string is passed to the listener.
+      # JsonDeserializer would attempt a second layer of JSON parsing and fail.
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+server:
+  port: 8081
+
+logging:
+  level:
+    com.ordertracking: DEBUG
+
+kafka:
+  topics:
+    orders-events: orders.events
+
+cache:
+  ttl:
+    order-tracking: 300

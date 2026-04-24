@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="unknown"/>
+
+    <!--
+        JSON-safe message encoding using nested %replace converters:
+          1. Escape backslashes:  \  →  \\
+          2. Escape double-quotes: "  →  \"
+          3. Collapse newlines:   \n →  (space)   — prevents broken JSON lines
+        All MDC fields populated by MdcRequestFilter are emitted.
+    -->
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","traceId":"%X{traceId:-}","requestId":"%X{requestId:-}","userId":"%X{userId:-}","method":"%X{method:-}","uri":"%X{uri:-}","clientIp":"%X{clientIp:-}","thread":"%thread","logger":"%logger{36}","message":"%replace(%replace(%replace(%message){'\\','\\\\'}){'"','\\"'}){'\n',' '}"%nopex}%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/${appName}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/${appName}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","traceId":"%X{traceId:-}","requestId":"%X{requestId:-}","userId":"%X{userId:-}","method":"%X{method:-}","uri":"%X{uri:-}","clientIp":"%X{clientIp:-}","thread":"%thread","logger":"%logger{36}","message":"%replace(%replace(%replace(%message){'\\','\\\\'}){'"','\\"'}){'\n',' '}"%nopex}%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orderdb
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # The producer serialises the event to JSON manually (ObjectMapper.writeValueAsString)
+      # and sends it as a plain String, so StringSerializer must be used here.
+      # JsonSerializer would add an extra layer of JSON-string encoding.
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.ordertracking: DEBUG
+
+kafka:
+  topics:
+    orders-events: orders.events
