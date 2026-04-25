@@ -109,7 +109,7 @@ flowchart LR
 The **Order Service** enforces strict layer isolation: Domain → Application → Infrastructure → Web.
 
 - **Aggregates** — `Order`, `Customer`, and `Product` act as aggregate roots; all business invariants are checked inside the model, not in service classes.
-- **Value objects** — `Money`, `Email`, and `CustomerId` are immutable; `Money` prevents negative amounts at construction time, and `Email` validates format with a regex.
+- **Value objects** — `Money`, `Email`, and `CustomerId` are immutable; `Money` prevents negative amounts at construction time, and `Email` validates format using a standard RFC 5322-compatible regex.
 - **Domain exceptions** — `Product.reduceStock` / `increaseStock` throw `DomainException` for non-positive quantities and null stock, keeping the invariants close to the data.
 - **Optimistic locking** — `OrderEntity` is annotated with `@Version`; concurrent updates to the same order fail fast with `OptimisticLockingFailureException` instead of silently overwriting data.
 
@@ -137,7 +137,7 @@ Default TTL is **300 seconds** and is configurable via `CACHE_TTL_ORDER_TRACKING
 
 ### Kafka Event Serialization
 
-Events are manually serialised to JSON (`ObjectMapper`) and sent as plain `String` payloads, so both services use `StringSerializer` / `StringDeserializer` — no schema registry or class-name headers required.
+Events are manually serialized to JSON (`ObjectMapper`) and sent as plain `String` payloads, so both services use `StringSerializer` / `StringDeserializer` — no schema registry or class-name headers required.
 
 The Kafka consumer calls `block(Duration.ofSeconds(10))` so Kafka offsets are committed only *after* the tracking record is persisted in MongoDB, preventing fire-and-forget message loss.
 
