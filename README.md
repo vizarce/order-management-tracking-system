@@ -239,77 +239,29 @@ curl http://localhost:8081/actuator/health   # Tracking Service
 
 #### 1. Infrastructure with Docker Compose
 
-The project requires Kafka (+ Zookeeper), PostgreSQL, MongoDB, and Redis. Create a `docker-compose.yml` in the repository root:
+A ready-to-use `docker-compose.yml` is included in the repository root. It spins up
+Zookeeper, Kafka, PostgreSQL, MongoDB, and Redis — all with health checks — and
+auto-creates the `orders.events` Kafka topic on first start.
 
-```yaml
-version: "3.9"
-
-services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:7.6.0
-    depends_on: [zookeeper]
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    ports:
-      - "9092:9092"
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: orderdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  mongodb:
-    image: mongo:7.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
-  redis:
-    image: redis:7.2-alpine
-    ports:
-      - "6379:6379"
-
-volumes:
-  postgres_data:
-  mongo_data:
-```
+| Service    | Image                          | Host port |
+|------------|--------------------------------|-----------|
+| Zookeeper  | confluentinc/cp-zookeeper:7.6.0 | 2181      |
+| Kafka      | confluentinc/cp-kafka:7.6.0    | 9092      |
+| PostgreSQL | postgres:16-alpine             | 5432      |
+| MongoDB    | mongo:7.0                      | 27017     |
+| Redis      | redis:7.2-alpine               | 6379      |
 
 Start all services:
 
 ```bash
 docker compose up -d
-docker compose ps          # verify all are "running"
+docker compose ps          # verify all are "healthy" / "running"
 ```
 
-#### 2. Create the Kafka Topic (first time only)
+The `kafka-init` one-shot container creates the `orders.events` topic automatically;
+no manual topic creation is needed.
 
-```bash
-docker compose exec kafka \
-  kafka-topics --create \
-    --bootstrap-server localhost:9092 \
-    --topic orders.events \
-    --partitions 1 \
-    --replication-factor 1
-```
-
-#### 3. Run each microservice
+#### 2. Run each microservice
 
 **Order Service**
 ```bash
@@ -323,7 +275,7 @@ SPRING_PROFILES_ACTIVE=local ./mvnw -pl order-service spring-boot:run
 ./mvnw -pl tracking-service spring-boot:run
 ```
 
-#### 4. Tear down
+#### 3. Tear down
 
 ```bash
 docker compose down -v    # -v removes volumes (wipes data)
