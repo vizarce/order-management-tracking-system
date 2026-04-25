@@ -35,6 +35,7 @@ A dual-microservice CQRS system for managing and tracking orders in real time. T
 
 - [About](#about)
 - [Architecture](#architecture)
+- [Implementation Highlights](#implementation-highlights)
 - [Module Breakdown](#module-breakdown)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
@@ -98,6 +99,62 @@ flowchart LR
 2. The Order Service persists the order in **PostgreSQL** and publishes an `OrderCreatedEvent` to Kafka topic `orders.events`.
 3. The **Tracking Service** consumes the event, writes the tracking record to **MongoDB**, and invalidates/populates the **Redis** cache.
 4. A client polls `GET /api/v1/tracking/{orderId}` on the Tracking Service; the response is served from Redis on a cache hit (TTL 300 s) or from MongoDB on a miss.
+
+---
+
+## Implementation Highlights
+
+### Clean Architecture & Rich Domain Model
+
+The **Order Service** enforces strict layer isolation: Domain → Application → Infrastructure → Web.
+
+- **Aggregates** — `Order`, `Customer`, and `Product` act as aggregate roots; all business invariants are checked inside the model, not in service classes.
+- **Value objects** — `Money`, `Email`, and `CustomerId` are immutable; `Money` prevents negative amounts at construction time, and `Email` validates format with a regex.
+- **Domain exceptions** — `Product.reduceStock` / `increaseStock` throw `DomainException` for non-positive quantities and null stock, keeping the invariants close to the data.
+- **Optimistic locking** — `OrderEntity` is annotated with `@Version`; concurrent updates to the same order fail fast with `OptimisticLockingFailureException` instead of silently overwriting data.
+
+### Asynchronous Order Confirmation (202 Accepted)
+
+`POST /api/v1/orders` returns **202 Accepted** immediately. Background confirmation runs via a `ScheduledExecutorService` (no blocking `Thread.sleep`) with MDC context explicitly captured across the async boundary so trace IDs are not lost.
+
+The confirmation logic lives in a dedicated `OrderConfirmationHelper` `@Component` annotated with `@Transactional(propagation = REQUIRES_NEW)`, which ensures Spring's proxy-based AOP is applied correctly — avoiding the self-invocation pitfall.
+
+### Reactive Cache-Aside Pattern
+
+The **Tracking Service** uses a typed `ReactiveRedisTemplate<String, TrackingResponse>` — no `DefaultTyping`, eliminating the polymorphic-deserialization attack surface. The cache-miss fallback is wrapped in `Mono.defer` so the MongoDB call is only subscribed when the cache is genuinely empty:
+
+```java
+return redisTemplate.opsForValue().get("tracking:" + orderId)
+    .switchIfEmpty(Mono.defer(() ->
+        repository.findByOrderId(orderId)
+            .map(mapper::toDto)
+            .flatMap(dto -> redisTemplate.opsForValue()
+                .set("tracking:" + orderId, dto, Duration.ofSeconds(cacheTtl))
+                .thenReturn(dto))));
+```
+
+Default TTL is **300 seconds** and is configurable via `CACHE_TTL_ORDER_TRACKING`.
+
+### Kafka Event Serialization
+
+Events are manually serialised to JSON (`ObjectMapper`) and sent as plain `String` payloads, so both services use `StringSerializer` / `StringDeserializer` — no schema registry or class-name headers required.
+
+The Kafka consumer calls `block(Duration.ofSeconds(10))` so Kafka offsets are committed only *after* the tracking record is persisted in MongoDB, preventing fire-and-forget message loss.
+
+### WebFlux MDC Propagation
+
+`MdcWebFilter` stores correlation IDs in the per-subscription **Reactor Context** (request-scoped, not thread-scoped) and lifts them into MDC per-signal via `doOnEach`. This prevents cross-request MDC leakage when multiple requests share the same Netty event-loop thread.
+
+### Structured JSON Logging
+
+Both services ship a `logback-spring.xml` that uses nested `%replace` converters to produce JSON-safe log lines:
+1. Escape backslashes (`\` → `\\`)
+2. Escape double-quotes (`"` → `\"`)
+3. Collapse newlines to a single space (prevents broken JSON from stack traces)
+
+Fields emitted per log record: `timestamp`, `level`, `service`, `traceId`, `requestId`, `userId`, `method`, `uri`, `clientIp`, `thread`, `logger`, `message`.
+
+`logback-classic` is pinned to **1.4.12**, which patches the serialization CVE affecting versions `>= 1.4.0, < 1.4.12`.
 
 ---
 
