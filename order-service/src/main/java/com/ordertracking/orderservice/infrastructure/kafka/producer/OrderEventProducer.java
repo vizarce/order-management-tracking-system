@@ -3,6 +3,7 @@ package com.ordertracking.orderservice.infrastructure.kafka.producer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracking.common.dto.OrderItemDto;
 import com.ordertracking.common.event.OrderCreatedEvent;
+import com.ordertracking.common.event.OrderStatusUpdatedEvent;
 import com.ordertracking.common.mdc.MdcConstants;
 import com.ordertracking.orderservice.domain.model.Order;
 import org.slf4j.Logger;
@@ -69,6 +70,36 @@ public class OrderEventProducer {
             log.info("Published OrderCreatedEvent for order {}", order.getId());
         } catch (Exception e) {
             log.error("Failed to publish OrderCreatedEvent for order {}", order.getId(), e);
+        }
+    }
+
+    public void publishOrderStatusUpdated(Order order, String previousStatus) {
+        try {
+            String traceId   = MDC.get(MdcConstants.TRACE_ID);
+            String requestId = MDC.get(MdcConstants.REQUEST_ID);
+
+            OrderStatusUpdatedEvent event = new OrderStatusUpdatedEvent(
+                order.getId().toString(),
+                previousStatus,
+                order.getStatus().name(),
+                Instant.now(),
+                traceId,
+                requestId
+            );
+
+            String payload = objectMapper.writeValueAsString(event);
+
+            var builder = MessageBuilder.withPayload(payload)
+                .setHeader(KafkaHeaders.TOPIC, ordersTopic)
+                .setHeader(KafkaHeaders.KEY, order.getId().toString());
+
+            if (traceId   != null) builder.setHeader(MdcConstants.HEADER_TRACE_ID,   traceId.getBytes(StandardCharsets.UTF_8));
+            if (requestId != null) builder.setHeader(MdcConstants.HEADER_REQUEST_ID, requestId.getBytes(StandardCharsets.UTF_8));
+
+            kafkaTemplate.send(builder.build());
+            log.info("Published OrderStatusUpdatedEvent for order {} ({} -> {})", order.getId(), previousStatus, order.getStatus().name());
+        } catch (Exception e) {
+            log.error("Failed to publish OrderStatusUpdatedEvent for order {}", order.getId(), e);
         }
     }
 }

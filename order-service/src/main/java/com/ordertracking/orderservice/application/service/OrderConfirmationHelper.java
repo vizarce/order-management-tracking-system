@@ -2,6 +2,7 @@ package com.ordertracking.orderservice.application.service;
 
 import com.ordertracking.orderservice.domain.model.valueobject.OrderId;
 import com.ordertracking.orderservice.domain.repository.OrderRepository;
+import com.ordertracking.orderservice.infrastructure.kafka.producer.OrderEventProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -24,9 +25,11 @@ public class OrderConfirmationHelper {
     private static final Logger log = LoggerFactory.getLogger(OrderConfirmationHelper.class);
 
     private final OrderRepository orderRepository;
+    private final OrderEventProducer orderEventProducer;
 
-    public OrderConfirmationHelper(OrderRepository orderRepository) {
+    public OrderConfirmationHelper(OrderRepository orderRepository, OrderEventProducer orderEventProducer) {
         this.orderRepository = orderRepository;
+        this.orderEventProducer = orderEventProducer;
     }
 
     /**
@@ -37,9 +40,11 @@ public class OrderConfirmationHelper {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void confirmOrder(UUID orderId) {
         orderRepository.findById(OrderId.of(orderId)).ifPresent(order -> {
+            String previousStatus = order.getStatus().name();
             order.confirm();
             orderRepository.save(order);
             log.info("Order {} confirmed (PROCESSING)", orderId);
+            orderEventProducer.publishOrderStatusUpdated(order, previousStatus);
         });
     }
 }
