@@ -5,6 +5,7 @@ import com.ordertracking.orderservice.domain.repository.ProductRepository;
 import com.ordertracking.orderservice.infrastructure.persistence.mapper.ProductMapper;
 import com.ordertracking.orderservice.infrastructure.persistence.repository.ProductJpaRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -25,11 +26,13 @@ public class ProductRepositoryAdapter implements ProductRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<Product> findById(String id) {
         return jpaRepository.findById(id).map(mapper::toDomain);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Product> findAll() {
         return jpaRepository.findAll().stream().map(mapper::toDomain).collect(Collectors.toList());
     }
