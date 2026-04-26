@@ -10,7 +10,7 @@ on:
       run_dep_check:
         description: "Запускати OWASP Dependency-Check?"
         required: true
-        default: "false"
+        default: "true"
         type: choice
         options:
           - "true"
