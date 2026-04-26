@@ -19,7 +19,7 @@ public class OrderTrackingService {
     private final ReactiveRedisTemplate<String, OrderTrackingDto> redisTemplate;
     private final OrderTrackingMapper mapper;
 
-    @Value("${cache.ttl.order-tracking:300}")
+    @Value("${tracking.cache.ttl-seconds:300}")
     private long cacheTtl;
 
     public OrderTrackingService(OrderTrackingRepository orderTrackingRepository,
@@ -31,31 +31,45 @@ public class OrderTrackingService {
     }
 
     public Mono<OrderTrackingDto> getOrderTracking(String orderId) {
-        String cacheKey = "tracking:" + orderId;
+        String cacheKey = cacheKey(orderId);
+        Mono<OrderTrackingDto> dbFallback = Mono.defer(() ->
+            orderTrackingRepository.findByOrderId(orderId)
+                .map(mapper::toDto)
+                .flatMap(dto ->
+                    redisTemplate.opsForValue()
+                        .set(cacheKey, dto, Duration.ofSeconds(cacheTtl))
+                        .thenReturn(dto)
+                )
+                .doOnNext(dto -> log.debug("Loaded from DB and cached for orderId={}", orderId))
+        );
+
         return redisTemplate.opsForValue().get(cacheKey)
             .doOnNext(dto -> log.debug("Cache hit for orderId={}", orderId))
             // Mono.defer ensures findByOrderId is only called (and subscribed to)
             // when the cache is actually empty — not during chain assembly.
-            .switchIfEmpty(Mono.defer(() ->
-                orderTrackingRepository.findByOrderId(orderId)
-                    .map(mapper::toDto)
-                    .flatMap(dto ->
-                        redisTemplate.opsForValue()
-                            .set(cacheKey, dto, Duration.ofSeconds(cacheTtl))
-                            .thenReturn(dto)
-                    )
-                    .doOnNext(dto -> log.debug("Loaded from DB and cached for orderId={}", orderId))
-            ));
+            .switchIfEmpty(dbFallback)
+            // If Redis itself throws an error (connection refused, timeout, etc.)
+            // fall back transparently to MongoDB so the caller still gets a result.
+            .onErrorResume(ex -> {
+                log.warn("Redis error for orderId={}, falling back to DB: {}", orderId, ex.getMessage());
+                return dbFallback;
+            });
     }
 
     public Mono<OrderTrackingDto> saveTracking(OrderTrackingDto dto) {
         return orderTrackingRepository.save(mapper.fromDto(dto))
             .map(mapper::toDto)
             .flatMap(saved -> {
-                String cacheKey = "tracking:" + saved.orderId();
-                return redisTemplate.opsForValue()
-                    .set(cacheKey, saved, Duration.ofSeconds(cacheTtl))
+                String cacheKey = cacheKey(saved.orderId());
+                // Evict any stale entry first, then write the fresh value.
+                return redisTemplate.delete(cacheKey)
+                    .then(redisTemplate.opsForValue()
+                        .set(cacheKey, saved, Duration.ofSeconds(cacheTtl)))
                     .thenReturn(saved);
             });
+    }
+
+    private static String cacheKey(String orderId) {
+        return "tracking:" + orderId;
     }
 }
