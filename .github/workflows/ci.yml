@@ -38,9 +38,12 @@ jobs:
           fail-on-error: false
 
       - name: OWASP Dependency-Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: >
           mvn --batch-mode
           org.owasp:dependency-check-maven:check
+          -DnvdApiKey=${{ env.NVD_API_KEY }}
           -DfailBuildOnCVSS=7
           -DsuppressionFile=.github/owasp-suppressions.xml
           --fail-at-end
