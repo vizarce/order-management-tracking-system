@@ -145,7 +145,7 @@ class OrderEventConsumerTest {
 
     private OrderCreatedEvent buildEvent(String orderId) {
         return new OrderCreatedEvent(
-            orderId, "cust-1", "PENDING", BigDecimal.TEN,
+            orderId, orderId + "-cust", "PENDING", BigDecimal.TEN,
             Collections.emptyList(), Instant.now(), null, null);
     }
 }

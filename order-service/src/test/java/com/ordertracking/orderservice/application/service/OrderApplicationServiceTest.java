@@ -126,7 +126,7 @@ class OrderApplicationServiceTest {
 
         service.createOrder(request);
 
-        assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();
+        assertThat(latch.await(1, TimeUnit.SECONDS)).isTrue();
         assertThat(asyncTrace.get()).isEqualTo("async-trace-id");
         assertThat(asyncRequest.get()).isEqualTo("async-request-id");
     }
