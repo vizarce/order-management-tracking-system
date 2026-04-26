@@ -2,18 +2,19 @@ spring:
   application:
     name: order-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/orderdb
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:h2:mem:orderdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      # Disabled by default; enable only in local development profiles
+      enabled: false
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
   kafka:
     bootstrap-servers: localhost:9092
     producer:
@@ -22,6 +23,13 @@ spring:
       # and sends it as a plain String, so StringSerializer must be used here.
       # JsonSerializer would add an extra layer of JSON-string encoding.
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 5000
 
 server:
   port: 8080
