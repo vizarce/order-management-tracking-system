@@ -3,6 +3,7 @@ package com.ordertracking.orderservice.web.exception;
 import com.ordertracking.orderservice.domain.exception.CustomerNotFoundException;
 import com.ordertracking.orderservice.domain.exception.DomainException;
 import com.ordertracking.orderservice.domain.exception.InsufficientStockException;
+import com.ordertracking.orderservice.domain.exception.OrderNotFoundException;
 import com.ordertracking.orderservice.domain.exception.ProductNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,13 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleCustomerNotFound(CustomerNotFoundException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         pd.setType(URI.create("urn:problem:customer-not-found"));
+        return pd;
+    }
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ProblemDetail handleOrderNotFound(OrderNotFoundException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setType(URI.create("urn:problem:order-not-found"));
         return pd;
     }
 

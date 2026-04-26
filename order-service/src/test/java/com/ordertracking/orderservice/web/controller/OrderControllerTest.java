@@ -3,7 +3,9 @@ package com.ordertracking.orderservice.web.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracking.orderservice.application.dto.CreateOrderRequest;
 import com.ordertracking.orderservice.application.dto.CreateOrderResponse;
+import com.ordertracking.orderservice.application.dto.OrderResponse;
 import com.ordertracking.orderservice.application.service.OrderApplicationService;
+import com.ordertracking.orderservice.domain.exception.OrderNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -14,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -46,5 +49,25 @@ class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldGetOrderById() throws Exception {
+        var response = new OrderResponse("order-1", "cust-1", "CONFIRMED", BigDecimal.valueOf(20.00), List.of(), LocalDateTime.now());
+        when(orderApplicationService.getOrder(eq("order-1"))).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/orders/order-1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.orderId").value("order-1"))
+            .andExpect(jsonPath("$.status").value("CONFIRMED"));
+    }
+
+    @Test
+    void shouldReturn404WhenOrderNotFound() throws Exception {
+        when(orderApplicationService.getOrder(eq("unknown")))
+            .thenThrow(new OrderNotFoundException("unknown"));
+
+        mockMvc.perform(get("/api/v1/orders/unknown"))
+            .andExpect(status().isNotFound());
     }
 }
