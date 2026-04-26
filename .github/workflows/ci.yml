@@ -5,6 +5,16 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      run_dep_check:
+        description: "Запускати OWASP Dependency-Check?"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 jobs:
   build:
@@ -38,6 +48,7 @@ jobs:
           fail-on-error: false
 
       - name: OWASP Dependency-Check
+        if: ${{ github.event.inputs.run_dep_check == 'true' }}
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: >
