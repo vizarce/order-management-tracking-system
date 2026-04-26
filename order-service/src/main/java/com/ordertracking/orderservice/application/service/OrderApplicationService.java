@@ -7,6 +7,7 @@ import com.ordertracking.orderservice.application.usecase.CreateOrderUseCase;
 import com.ordertracking.orderservice.application.usecase.GetOrderUseCase;
 import com.ordertracking.orderservice.domain.model.Order;
 import com.ordertracking.orderservice.infrastructure.kafka.producer.OrderEventProducer;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public class OrderApplicationService {
 
     /** Dedicated single-thread scheduler for the payment-simulation delay.
      *  Using a ScheduledExecutorService avoids blocking a thread during the wait. */
-    private static final ScheduledExecutorService SCHEDULER =
+    private final ScheduledExecutorService scheduler =
         new ScheduledThreadPoolExecutor(1, r -> {
             Thread t = new Thread(r, "order-async-scheduler");
             t.setDaemon(true);
@@ -75,7 +76,7 @@ public class OrderApplicationService {
             } finally {
                 org.slf4j.MDC.clear();
             }
-        }, command -> SCHEDULER.schedule(command, 500, TimeUnit.MILLISECONDS));
+        }, command -> scheduler.schedule(command, 500, TimeUnit.MILLISECONDS));
 
         return CreateOrderResponse.from(order);
     }
@@ -85,4 +86,19 @@ public class OrderApplicationService {
         Order order = getOrderUseCase.execute(orderId);
         return OrderResponse.from(order);
     }
+
+    /** Gracefully shuts down the background scheduler on application stop. */
+    @PreDestroy
+    public void shutdown() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException ex) {
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
 }
+
