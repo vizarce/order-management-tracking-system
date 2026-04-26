@@ -1,5 +1,6 @@
 package com.ordertracking.orderservice.application.service;
 
+import com.ordertracking.common.mdc.MdcConstants;
 import com.ordertracking.orderservice.application.dto.CreateOrderRequest;
 import com.ordertracking.orderservice.application.dto.CreateOrderResponse;
 import com.ordertracking.orderservice.application.dto.OrderResponse;
@@ -18,10 +19,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.MDC;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,11 +47,13 @@ class OrderApplicationServiceTest {
     void setUp() {
         service = new OrderApplicationService(
             createOrderUseCase, getOrderUseCase, orderEventProducer, orderConfirmationHelper);
+        MDC.clear();
     }
 
     @AfterEach
     void tearDown() {
         service.shutdown();
+        MDC.clear();
     }
 
     @Test
@@ -90,4 +97,38 @@ class OrderApplicationServiceTest {
         assertThatThrownBy(() -> service.getOrder(orderId))
             .isInstanceOf(OrderNotFoundException.class);
     }
+
+    @Test
+    void createOrder_propagatesMdcContextToAsyncThread() throws InterruptedException {
+        MDC.put(MdcConstants.TRACE_ID,   "async-trace-id");
+        MDC.put(MdcConstants.REQUEST_ID, "async-request-id");
+        MDC.put(MdcConstants.USER_ID,    "async-user-id");
+
+        CustomerId customerId = CustomerId.of(UUID.randomUUID());
+        Order order = Order.create(customerId);
+        order.addItem(new OrderItem("prod-1", "Widget", 1, Money.of(BigDecimal.TEN, "USD")));
+
+        var request = new CreateOrderRequest(customerId.toString(),
+            List.of(new CreateOrderRequest.OrderItemRequest("prod-1", 1)));
+
+        when(createOrderUseCase.execute(request)).thenReturn(order);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> asyncTrace   = new AtomicReference<>();
+        AtomicReference<String> asyncRequest = new AtomicReference<>();
+
+        doAnswer(inv -> {
+            asyncTrace.set(MDC.get(MdcConstants.TRACE_ID));
+            asyncRequest.set(MDC.get(MdcConstants.REQUEST_ID));
+            latch.countDown();
+            return null;
+        }).when(orderConfirmationHelper).confirmOrder(any(UUID.class));
+
+        service.createOrder(request);
+
+        assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();
+        assertThat(asyncTrace.get()).isEqualTo("async-trace-id");
+        assertThat(asyncRequest.get()).isEqualTo("async-request-id");
+    }
 }
+

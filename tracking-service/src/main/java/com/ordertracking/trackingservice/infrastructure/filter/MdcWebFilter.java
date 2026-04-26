@@ -2,6 +2,7 @@ package com.ordertracking.trackingservice.infrastructure.filter;
 
 import com.ordertracking.common.mdc.MdcConstants;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -29,6 +30,9 @@ import java.util.UUID;
 @Order(-1)
 public class MdcWebFilter implements WebFilter {
 
+    @Value("${spring.application.name:unknown}")
+    private String serviceName = "unknown";
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String requestId = Optional.ofNullable(
@@ -45,25 +49,31 @@ public class MdcWebFilter implements WebFilter {
         exchange.getResponse().getHeaders().set(MdcConstants.HEADER_TRACE_ID, traceId);
 
         return chain.filter(exchange)
+            // Lift context values into MDC per-signal so that log statements inside
+            // signal callbacks (doOnNext, doOnError, doOnComplete) carry the correct IDs.
+            // This avoids the risk of one request's MDC polluting another request's log
+            // lines when they share an event-loop thread.
+            // IMPORTANT: doOnEach must appear BEFORE contextWrite in the chain declaration.
+            // Context flows upstream during subscription, so contextWrite (downstream) enriches
+            // the context visible to doOnEach (upstream), making signal.getContextView() return
+            // the correct values. Reversing the order produces an empty context in doOnEach.
+            .doOnEach(signal -> {
+                reactor.util.context.ContextView ctx = signal.getContextView();
+                ctx.getOrEmpty(MdcConstants.TRACE_ID).ifPresent(v -> MDC.put(MdcConstants.TRACE_ID, v.toString()));
+                ctx.getOrEmpty(MdcConstants.REQUEST_ID).ifPresent(v -> MDC.put(MdcConstants.REQUEST_ID, v.toString()));
+                ctx.getOrEmpty(MdcConstants.USER_ID).ifPresent(v -> MDC.put(MdcConstants.USER_ID, v.toString()));
+                ctx.getOrEmpty(MdcConstants.SERVICE).ifPresent(v -> MDC.put(MdcConstants.SERVICE, v.toString()));
+                if (signal.isOnComplete() || signal.isOnError()) {
+                    MDC.clear();
+                }
+            })
             // Store in Reactor Context so downstream operators can access them safely,
             // even when execution has moved to a different thread.
             .contextWrite(ctx -> ctx
                 .put(MdcConstants.REQUEST_ID, requestId)
                 .put(MdcConstants.TRACE_ID,   traceId)
                 .put(MdcConstants.USER_ID,    userId)
-            )
-            // Lift context values into MDC per-signal so that log statements inside
-            // signal callbacks (doOnNext, doOnError, doOnComplete) carry the correct IDs.
-            // This avoids the risk of one request's MDC polluting another request's log
-            // lines when they share an event-loop thread.
-            .doOnEach(signal -> {
-                reactor.util.context.ContextView ctx = signal.getContextView();
-                ctx.getOrEmpty(MdcConstants.TRACE_ID).ifPresent(v -> MDC.put(MdcConstants.TRACE_ID, v.toString()));
-                ctx.getOrEmpty(MdcConstants.REQUEST_ID).ifPresent(v -> MDC.put(MdcConstants.REQUEST_ID, v.toString()));
-                ctx.getOrEmpty(MdcConstants.USER_ID).ifPresent(v -> MDC.put(MdcConstants.USER_ID, v.toString()));
-                if (signal.isOnComplete() || signal.isOnError()) {
-                    MDC.clear();
-                }
-            });
+                .put(MdcConstants.SERVICE,    serviceName)
+            );
     }
 }
