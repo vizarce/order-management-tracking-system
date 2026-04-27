@@ -2,6 +2,9 @@ package com.ordertracking.trackingservice.web.controller;
 
 import com.ordertracking.trackingservice.application.dto.OrderTrackingDto;
 import com.ordertracking.trackingservice.application.service.OrderTrackingService;
+import com.ordertracking.trackingservice.domain.exception.NotFoundException;
+import com.ordertracking.trackingservice.infrastructure.filter.MdcWebFilter;
+import com.ordertracking.trackingservice.web.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -16,10 +19,8 @@ import java.util.Collections;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import com.ordertracking.trackingservice.infrastructure.filter.MdcWebFilter;
-
 @WebFluxTest(TrackingController.class)
-@Import(MdcWebFilter.class)
+@Import({MdcWebFilter.class, GlobalExceptionHandler.class})
 class TrackingControllerTest {
 
     @Autowired
@@ -36,7 +37,7 @@ class TrackingControllerTest {
             Instant.parse("2024-01-01T00:00:00Z"),
             Instant.parse("2024-01-01T00:00:00Z")
         );
-        when(orderTrackingService.getOrderTracking(eq("order-1"))).thenReturn(Mono.just(dto));
+        when(orderTrackingService.getTracking(eq("order-1"))).thenReturn(Mono.just(dto));
 
         webTestClient.get()
             .uri("/api/v1/tracking/order-1")
@@ -51,7 +52,8 @@ class TrackingControllerTest {
 
     @Test
     void shouldReturn404WhenOrderNotFound() {
-        when(orderTrackingService.getOrderTracking(eq("unknown"))).thenReturn(Mono.empty());
+        when(orderTrackingService.getTracking(eq("unknown")))
+            .thenReturn(Mono.error(new NotFoundException("Tracking not found for orderId: unknown")));
 
         webTestClient.get()
             .uri("/api/v1/tracking/unknown")
@@ -66,7 +68,7 @@ class TrackingControllerTest {
             BigDecimal.ONE, Collections.emptyList(),
             Instant.now(), Instant.now()
         );
-        when(orderTrackingService.getOrderTracking(eq("order-2"))).thenReturn(Mono.just(dto));
+        when(orderTrackingService.getTracking(eq("order-2"))).thenReturn(Mono.just(dto));
 
         webTestClient.get()
             .uri("/api/v1/tracking/order-2")
@@ -82,7 +84,7 @@ class TrackingControllerTest {
             BigDecimal.TEN, Collections.emptyList(),
             Instant.now(), Instant.now()
         );
-        when(orderTrackingService.getOrderTracking(eq("order-3"))).thenReturn(Mono.just(dto));
+        when(orderTrackingService.getTracking(eq("order-3"))).thenReturn(Mono.just(dto));
 
         webTestClient.get()
             .uri("/api/v1/tracking/order-3")
@@ -94,3 +96,4 @@ class TrackingControllerTest {
             .expectHeader().valueEquals("X-Trace-Id", "trace-xyz");
     }
 }
+

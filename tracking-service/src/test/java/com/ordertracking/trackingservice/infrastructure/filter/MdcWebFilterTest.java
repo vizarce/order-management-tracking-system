@@ -132,4 +132,27 @@ class MdcWebFilterTest {
         // MDC should be clear after the signal-level MDC.clear() call on completion.
         assertThat(MDC.getCopyOfContextMap()).isNullOrEmpty();
     }
+
+    @Test
+    void contextWrittenByFilterIsAccessibleToUpstreamOperators() {
+        // Verify that the Reactor Context written by the filter is accessible to
+        // upstream operators, confirming that signals carry the enriched context
+        // with all tracing IDs needed for logging and observability.
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+            MockServerHttpRequest.get("/test")
+                .header(MdcConstants.HEADER_TRACE_ID,   "signal-trace")
+                .header(MdcConstants.HEADER_REQUEST_ID, "signal-req")
+                .header(MdcConstants.HEADER_USER_ID,    "signal-user")
+                .build()
+        );
+        WebFilterChain chain = ex -> Mono.empty();
+
+        StepVerifier.create(filter.filter(exchange, chain))
+            .expectAccessibleContext()
+            .contains(MdcConstants.TRACE_ID,   "signal-trace")
+            .contains(MdcConstants.REQUEST_ID, "signal-req")
+            .contains(MdcConstants.USER_ID,    "signal-user")
+            .then()
+            .verifyComplete();
+    }
 }

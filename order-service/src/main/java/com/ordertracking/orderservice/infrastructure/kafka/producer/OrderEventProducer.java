@@ -42,6 +42,7 @@ public class OrderEventProducer {
 
             String traceId   = MDC.get(MdcConstants.TRACE_ID);
             String requestId = MDC.get(MdcConstants.REQUEST_ID);
+            String userId    = MDC.get(MdcConstants.USER_ID);
 
             OrderCreatedEvent event = new OrderCreatedEvent(
                 order.getId().toString(),
@@ -65,6 +66,7 @@ public class OrderEventProducer {
             // silently replace the generated trace ID with an empty one.
             if (traceId   != null) builder.setHeader(MdcConstants.HEADER_TRACE_ID,   traceId.getBytes(StandardCharsets.UTF_8));
             if (requestId != null) builder.setHeader(MdcConstants.HEADER_REQUEST_ID, requestId.getBytes(StandardCharsets.UTF_8));
+            if (userId    != null) builder.setHeader(MdcConstants.HEADER_USER_ID,    userId.getBytes(StandardCharsets.UTF_8));
 
             kafkaTemplate.send(builder.build());
             log.info("Published OrderCreatedEvent for order {}", order.getId());
@@ -77,6 +79,7 @@ public class OrderEventProducer {
         try {
             String traceId   = MDC.get(MdcConstants.TRACE_ID);
             String requestId = MDC.get(MdcConstants.REQUEST_ID);
+            String userId    = MDC.get(MdcConstants.USER_ID);
 
             OrderStatusUpdatedEvent event = new OrderStatusUpdatedEvent(
                 order.getId().toString(),
@@ -95,6 +98,7 @@ public class OrderEventProducer {
 
             if (traceId   != null) builder.setHeader(MdcConstants.HEADER_TRACE_ID,   traceId.getBytes(StandardCharsets.UTF_8));
             if (requestId != null) builder.setHeader(MdcConstants.HEADER_REQUEST_ID, requestId.getBytes(StandardCharsets.UTF_8));
+            if (userId    != null) builder.setHeader(MdcConstants.HEADER_USER_ID,    userId.getBytes(StandardCharsets.UTF_8));
 
             kafkaTemplate.send(builder.build());
             log.info("Published OrderStatusUpdatedEvent for order {} ({} -> {})", order.getId(), previousStatus, order.getStatus().name());
