@@ -1,6 +1,7 @@
 package com.ordertracking.trackingservice.application.service;
 
 import com.ordertracking.trackingservice.application.dto.OrderTrackingDto;
+import com.ordertracking.trackingservice.domain.exception.NotFoundException;
 import com.ordertracking.trackingservice.domain.model.OrderTracking;
 import com.ordertracking.trackingservice.domain.model.TrackingStatus;
 import com.ordertracking.trackingservice.domain.repository.OrderTrackingRepository;
@@ -42,7 +43,7 @@ class OrderTrackingServiceTest {
             BigDecimal.TEN, Collections.emptyList(), Instant.now(), Instant.now());
         when(valueOperations.get("tracking:order-1")).thenReturn(Mono.just(cachedDto));
 
-        StepVerifier.create(service.getOrderTracking("order-1"))
+        StepVerifier.create(service.getTracking("order-1"))
             .expectNextMatches(dto -> "order-1".equals(dto.orderId()))
             .verifyComplete();
     }
@@ -63,17 +64,19 @@ class OrderTrackingServiceTest {
         when(orderTrackingRepository.findByOrderId("order-1")).thenReturn(Mono.just(domain));
         when(valueOperations.set(eq("tracking:order-1"), any(), any())).thenReturn(Mono.just(true));
 
-        StepVerifier.create(service.getOrderTracking("order-1"))
+        StepVerifier.create(service.getTracking("order-1"))
             .expectNextMatches(dto -> "order-1".equals(dto.orderId()))
             .verifyComplete();
     }
 
     @Test
-    void shouldReturnEmptyWhenNotFoundAnywhere() {
+    void shouldReturnNotFoundErrorWhenNotFoundAnywhere() {
         when(valueOperations.get("tracking:order-x")).thenReturn(Mono.empty());
         when(orderTrackingRepository.findByOrderId("order-x")).thenReturn(Mono.empty());
 
-        StepVerifier.create(service.getOrderTracking("order-x"))
-            .verifyComplete();
+        StepVerifier.create(service.getTracking("order-x"))
+            .expectErrorMatches(ex -> ex instanceof NotFoundException
+                && ex.getMessage().contains("order-x"))
+            .verify();
     }
 }
