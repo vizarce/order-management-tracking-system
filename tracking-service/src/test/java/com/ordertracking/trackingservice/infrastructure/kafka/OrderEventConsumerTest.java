@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,6 +43,9 @@ class OrderEventConsumerTest {
         objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         consumer = new OrderEventConsumer(objectMapper, orderTrackingService);
         MDC.clear();
+        // The consumer checks for an existing tracking document before saving (idempotency).
+        // Return empty so the not-found path proceeds to saveTracking in all tests here.
+        lenient().when(orderTrackingService.getTracking(anyString())).thenReturn(Mono.empty());
     }
 
     @AfterEach

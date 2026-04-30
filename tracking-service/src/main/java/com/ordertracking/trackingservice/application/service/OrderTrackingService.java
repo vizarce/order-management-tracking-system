@@ -2,6 +2,7 @@ package com.ordertracking.trackingservice.application.service;
 
 import com.ordertracking.trackingservice.application.dto.OrderTrackingDto;
 import com.ordertracking.trackingservice.domain.exception.NotFoundException;
+import com.ordertracking.trackingservice.domain.model.TrackingStatus;
 import com.ordertracking.trackingservice.domain.repository.OrderTrackingRepository;
 import com.ordertracking.trackingservice.infrastructure.persistence.mapper.OrderTrackingMapper;
 import org.slf4j.Logger;
@@ -11,6 +12,7 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import java.time.Duration;
+import java.time.Instant;
 
 @Service
 public class OrderTrackingService {
@@ -59,5 +61,29 @@ public class OrderTrackingService {
                     .set(cacheKey, saved, Duration.ofSeconds(cacheTtl))
                     .thenReturn(saved);
             });
+    }
+
+    /**
+     * Updates the status of an existing OrderTracking document and invalidates the Redis cache.
+     * This operation is idempotent: applying the same status update multiple times yields the same result.
+     */
+    public Mono<OrderTrackingDto> updateTrackingStatus(String orderId, String newStatus) {
+        String cacheKey = "tracking:" + orderId;
+        return orderTrackingRepository.findByOrderId(orderId)
+            .flatMap(existing -> {
+                existing.setStatus(TrackingStatus.valueOf(newStatus));
+                existing.setUpdatedAt(Instant.now());
+                return orderTrackingRepository.save(existing);
+            })
+            .map(mapper::toDto)
+            .flatMap(updated ->
+                // Delete the stale cache entry first and then write the updated value.
+                // During the brief window between the delete and the set, readers will
+                // miss the cache and fall back to the database, which already holds the
+                // new status — so they still see a consistent view.
+                redisTemplate.delete(cacheKey)
+                    .then(redisTemplate.opsForValue().set(cacheKey, updated, Duration.ofSeconds(cacheTtl)))
+                    .thenReturn(updated)
+            );
     }
 }
