@@ -1,6 +1,7 @@
 package com.ordertracking.trackingservice.application.service;
 
 import com.ordertracking.trackingservice.application.dto.OrderTrackingDto;
+import com.ordertracking.trackingservice.domain.exception.NotFoundException;
 import com.ordertracking.trackingservice.domain.model.TrackingStatus;
 import com.ordertracking.trackingservice.domain.repository.OrderTrackingRepository;
 import com.ordertracking.trackingservice.infrastructure.persistence.mapper.OrderTrackingMapper;
@@ -32,7 +33,7 @@ public class OrderTrackingService {
         this.mapper = mapper;
     }
 
-    public Mono<OrderTrackingDto> getOrderTracking(String orderId) {
+    public Mono<OrderTrackingDto> getTracking(String orderId) {
         String cacheKey = "tracking:" + orderId;
         return redisTemplate.opsForValue().get(cacheKey)
             .doOnNext(dto -> log.debug("Cache hit for orderId={}", orderId))
@@ -47,7 +48,8 @@ public class OrderTrackingService {
                             .thenReturn(dto)
                     )
                     .doOnNext(dto -> log.debug("Loaded from DB and cached for orderId={}", orderId))
-            ));
+            ))
+            .switchIfEmpty(Mono.error(new NotFoundException("Tracking not found for orderId: " + orderId)));
     }
 
     public Mono<OrderTrackingDto> saveTracking(OrderTrackingDto dto) {

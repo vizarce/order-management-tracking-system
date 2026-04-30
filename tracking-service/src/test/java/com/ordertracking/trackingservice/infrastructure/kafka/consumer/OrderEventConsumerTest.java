@@ -68,7 +68,7 @@ class OrderEventConsumerTest {
             public Object requestId    = null;
         });
 
-        when(orderTrackingService.getOrderTracking("order-1")).thenReturn(Mono.empty());
+        when(orderTrackingService.getTracking("order-1")).thenReturn(Mono.empty());
         when(orderTrackingService.saveTracking(any())).thenReturn(Mono.just(sampleDto("order-1", "PENDING")));
 
         consumer.consume(record(payload));
@@ -89,7 +89,7 @@ class OrderEventConsumerTest {
             public Object requestId    = null;
         });
 
-        when(orderTrackingService.getOrderTracking("order-1"))
+        when(orderTrackingService.getTracking("order-1"))
             .thenReturn(Mono.just(sampleDto("order-1", "PENDING")));
 
         consumer.consume(record(payload));
@@ -153,7 +153,7 @@ class OrderEventConsumerTest {
             public Object requestId    = null;
         });
 
-        when(orderTrackingService.getOrderTracking("order-3")).thenReturn(Mono.empty());
+        when(orderTrackingService.getTracking("order-3")).thenReturn(Mono.empty());
         when(orderTrackingService.saveTracking(any())).thenReturn(Mono.just(sampleDto("order-3", "PENDING")));
 
         // Should not throw when trace/request headers are present

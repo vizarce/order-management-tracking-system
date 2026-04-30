@@ -48,6 +48,8 @@ public class OrderEventConsumer {
             MDC.put(MdcConstants.TRACE_ID,   (traceId   != null && !traceId.isBlank())   ? traceId   : UUID.randomUUID().toString());
             String requestId = extractHeader(record, MdcConstants.HEADER_REQUEST_ID);
             if (requestId != null && !requestId.isBlank()) MDC.put(MdcConstants.REQUEST_ID, requestId);
+            String userId = extractHeader(record, MdcConstants.HEADER_USER_ID);
+            if (userId != null && !userId.isBlank()) MDC.put(MdcConstants.USER_ID, userId);
 
             MDC.put(MdcConstants.TOPIC,     record.topic());
             MDC.put(MdcConstants.PARTITION, String.valueOf(record.partition()));
@@ -103,8 +105,12 @@ public class OrderEventConsumer {
         );
 
         // Idempotent: skip creation when tracking already exists (e.g. duplicate delivery).
+        // getTracking() throws NotFoundException when the order is not yet tracked; we
+        // treat that as "not found" so the switchIfEmpty proceeds to saveTracking.
         // Block with timeout so Kafka offset is committed only after the write is confirmed.
-        orderTrackingService.getOrderTracking(event.orderId())
+        orderTrackingService.getTracking(event.orderId())
+            .onErrorResume(com.ordertracking.trackingservice.domain.exception.NotFoundException.class,
+                           e -> Mono.empty())
             .doOnNext(existing -> log.info("Tracking already exists for orderId={}, skipping (idempotent)", existing.orderId()))
             .switchIfEmpty(Mono.defer(() ->
                 orderTrackingService.saveTracking(dto)
