@@ -3,15 +3,16 @@
     <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="unknown"/>
 
     <!--
-        JSON-safe message encoding:
-        1. Escape backslashes (\ → \\)
-        2. Escape double-quotes (" → \")
-        3. Replace newlines with a space (prevents broken JSON lines)
+        JSON-safe message encoding using nested %replace converters:
+          1. Escape backslashes:  \  →  \\
+          2. Escape double-quotes: "  →  \"
+          3. Collapse newlines:   \n →  (space)   — prevents broken JSON lines
+        All MDC fields populated by MdcWebFilter are emitted.
     -->
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","traceId":"%X{traceId:-}","requestId":"%X{requestId:-}","userId":"%X{userId:-}","thread":"%thread","logger":"%logger{36}","message":"%replace(%replace(%replace(%message){'\\','\\\\'}){'"','\"'}){'\n',' '}"%nopex}%n</pattern>
+            <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","traceId":"%X{traceId:-}","requestId":"%X{requestId:-}","userId":"%X{userId:-}","method":"%X{method:-}","uri":"%X{uri:-}","clientIp":"%X{clientIp:-}","thread":"%thread","logger":"%logger{36}","message":"%replace(%replace(%replace(%message){'\\','\\\\'}){'"','\\"'}){'\n',' '}"%nopex}%n</pattern>
         </encoder>
     </appender>
 
@@ -22,7 +23,7 @@
             <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","traceId":"%X{traceId:-}","requestId":"%X{requestId:-}","userId":"%X{userId:-}","thread":"%thread","logger":"%logger{36}","message":"%replace(%replace(%replace(%message){'\\','\\\\'}){'"','\"'}){'\n',' '}"%nopex}%n</pattern>
+            <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","traceId":"%X{traceId:-}","requestId":"%X{requestId:-}","userId":"%X{userId:-}","method":"%X{method:-}","uri":"%X{uri:-}","clientIp":"%X{clientIp:-}","thread":"%thread","logger":"%logger{36}","message":"%replace(%replace(%replace(%message){'\\','\\\\'}){'"','\\"'}){'\n',' '}"%nopex}%n</pattern>
         </encoder>
     </appender>
 

@@ -1,6 +1,7 @@
 package com.ordertracking.trackingservice.application.service;
 
 import com.ordertracking.trackingservice.application.dto.OrderTrackingDto;
+import com.ordertracking.trackingservice.domain.exception.NotFoundException;
 import com.ordertracking.trackingservice.domain.model.OrderTracking;
 import com.ordertracking.trackingservice.domain.model.TrackingStatus;
 import com.ordertracking.trackingservice.domain.repository.OrderTrackingRepository;
@@ -33,7 +34,7 @@ class OrderTrackingServiceTest {
     @BeforeEach
     void setup() {
         service = new OrderTrackingService(orderTrackingRepository, redisTemplate, mapper);
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
     @Test
@@ -42,7 +43,7 @@ class OrderTrackingServiceTest {
             BigDecimal.TEN, Collections.emptyList(), Instant.now(), Instant.now());
         when(valueOperations.get("tracking:order-1")).thenReturn(Mono.just(cachedDto));
 
-        StepVerifier.create(service.getOrderTracking("order-1"))
+        StepVerifier.create(service.getTracking("order-1"))
             .expectNextMatches(dto -> "order-1".equals(dto.orderId()))
             .verifyComplete();
     }
@@ -55,7 +56,7 @@ class OrderTrackingServiceTest {
         when(orderTrackingRepository.findByOrderId("order-1")).thenReturn(Mono.just(domain));
         when(valueOperations.set(eq("tracking:order-1"), any(), any())).thenReturn(Mono.just(true));
 
-        StepVerifier.create(service.getOrderTracking("order-1"))
+        StepVerifier.create(service.getTracking("order-1"))
             .expectNextMatches(dto -> "order-1".equals(dto.orderId()))
             .verifyComplete();
     }
@@ -69,17 +70,62 @@ class OrderTrackingServiceTest {
         when(orderTrackingRepository.findByOrderId("order-1")).thenReturn(Mono.just(domain));
         when(valueOperations.set(eq("tracking:order-1"), any(), any())).thenReturn(Mono.just(true));
 
-        StepVerifier.create(service.getOrderTracking("order-1"))
+        StepVerifier.create(service.getTracking("order-1"))
             .expectNextMatches(dto -> "order-1".equals(dto.orderId()))
             .verifyComplete();
     }
 
     @Test
-    void shouldReturnEmptyWhenNotFoundAnywhere() {
+    void shouldReturnNotFoundErrorWhenNotFoundAnywhere() {
         when(valueOperations.get("tracking:order-x")).thenReturn(Mono.empty());
         when(orderTrackingRepository.findByOrderId("order-x")).thenReturn(Mono.empty());
 
-        StepVerifier.create(service.getOrderTracking("order-x"))
+        StepVerifier.create(service.getTracking("order-x"))
+            .expectErrorMatches(ex -> ex instanceof NotFoundException
+                && ex.getMessage().contains("order-x"))
+            .verify();
+    }
+
+    @Test
+    void shouldUpdateTrackingStatusAndInvalidateCache() {
+        OrderTracking existing = new OrderTracking();
+        existing.setId("doc-1");
+        existing.setOrderId("order-2");
+        existing.setCustomerId("cust-2");
+        existing.setStatus(TrackingStatus.PENDING);
+        existing.setTotalAmount(BigDecimal.TEN);
+        existing.setCreatedAt(Instant.now());
+        existing.setUpdatedAt(Instant.now());
+        existing.setItems(Collections.emptyList());
+
+        OrderTracking saved = new OrderTracking();
+        saved.setId("doc-1");
+        saved.setOrderId("order-2");
+        saved.setCustomerId("cust-2");
+        saved.setStatus(TrackingStatus.SHIPPED);
+        saved.setTotalAmount(BigDecimal.TEN);
+        saved.setCreatedAt(existing.getCreatedAt());
+        saved.setUpdatedAt(Instant.now());
+        saved.setItems(Collections.emptyList());
+
+        when(orderTrackingRepository.findByOrderId("order-2")).thenReturn(Mono.just(existing));
+        when(orderTrackingRepository.save(any())).thenReturn(Mono.just(saved));
+        when(redisTemplate.delete(eq("tracking:order-2"))).thenReturn(Mono.just(1L));
+        when(valueOperations.set(eq("tracking:order-2"), any(), any())).thenReturn(Mono.just(true));
+
+        StepVerifier.create(service.updateTrackingStatus("order-2", "SHIPPED"))
+            .expectNextMatches(dto -> "SHIPPED".equals(dto.status()) && "order-2".equals(dto.orderId()))
+            .verifyComplete();
+
+        verify(redisTemplate).delete("tracking:order-2");
+        verify(valueOperations).set(eq("tracking:order-2"), any(), any());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenUpdatingStatusForMissingOrder() {
+        when(orderTrackingRepository.findByOrderId("order-missing")).thenReturn(Mono.empty());
+
+        StepVerifier.create(service.updateTrackingStatus("order-missing", "SHIPPED"))
             .verifyComplete();
     }
 

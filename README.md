@@ -1,6 +1,7 @@
 # Order Management & Tracking System
 
 [![Build](https://github.com/vizarce/order-management-tracking-system/actions/workflows/ci.yml/badge.svg)](https://github.com/vizarce/order-management-tracking-system/actions)
+[![Coverage](https://codecov.io/gh/vizarce/order-management-tracking-system/branch/main/graph/badge.svg)](https://codecov.io/gh/vizarce/order-management-tracking-system)
 [![Java](https://img.shields.io/badge/Java-17-blue.svg)](https://adoptium.net/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.3-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
