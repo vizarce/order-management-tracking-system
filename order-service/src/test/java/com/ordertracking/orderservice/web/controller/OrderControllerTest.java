@@ -5,6 +5,7 @@ import com.ordertracking.orderservice.application.dto.CreateOrderRequest;
 import com.ordertracking.orderservice.application.dto.CreateOrderResponse;
 import com.ordertracking.orderservice.application.dto.OrderResponse;
 import com.ordertracking.orderservice.application.service.OrderApplicationService;
+import com.ordertracking.orderservice.domain.exception.InsufficientStockException;
 import com.ordertracking.orderservice.domain.exception.OrderNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,12 +40,23 @@ class OrderControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isAccepted())
             .andExpect(jsonPath("$.orderId").value("order-1"))
-            .andExpect(jsonPath("$.status").value("PENDING"));
+            .andExpect(jsonPath("$.customerId").value("cust-1"))
+            .andExpect(jsonPath("$.status").value("PENDING"))
+            .andExpect(jsonPath("$.totalAmount").value(20.00));
     }
 
     @Test
     void shouldReturnBadRequestForMissingCustomerId() throws Exception {
-        var request = new CreateOrderRequest(null, List.of());
+        var request = new CreateOrderRequest(null, List.of(new CreateOrderRequest.OrderItemRequest("prod-1", 1)));
+        mockMvc.perform(post("/api/v1/orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnBadRequestForEmptyItemsList() throws Exception {
+        var request = new CreateOrderRequest("cust-1", List.of());
         mockMvc.perform(post("/api/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -59,7 +71,9 @@ class OrderControllerTest {
         mockMvc.perform(get("/api/v1/orders/order-1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.orderId").value("order-1"))
-            .andExpect(jsonPath("$.status").value("CONFIRMED"));
+            .andExpect(jsonPath("$.customerId").value("cust-1"))
+            .andExpect(jsonPath("$.status").value("CONFIRMED"))
+            .andExpect(jsonPath("$.totalAmount").value(20.00));
     }
 
     @Test
@@ -69,5 +83,17 @@ class OrderControllerTest {
 
         mockMvc.perform(get("/api/v1/orders/unknown"))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturn409WhenInsufficientStock() throws Exception {
+        var request = new CreateOrderRequest("cust-1", List.of(new CreateOrderRequest.OrderItemRequest("prod-1", 10)));
+        when(orderApplicationService.createOrder(any()))
+            .thenThrow(new InsufficientStockException("prod-1", 10, 3));
+
+        mockMvc.perform(post("/api/v1/orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isConflict());
     }
 }

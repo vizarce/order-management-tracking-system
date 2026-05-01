@@ -35,7 +35,9 @@ class CustomerControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.name").value("Alice"));
+            .andExpect(jsonPath("$.id").value("id-1"))
+            .andExpect(jsonPath("$.name").value("Alice"))
+            .andExpect(jsonPath("$.email").value("alice@example.com"));
     }
 
     @Test
@@ -46,7 +48,8 @@ class CustomerControllerTest {
         mockMvc.perform(get("/api/v1/customers/id-1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value("id-1"))
-            .andExpect(jsonPath("$.name").value("Alice"));
+            .andExpect(jsonPath("$.name").value("Alice"))
+            .andExpect(jsonPath("$.email").value("alice@example.com"));
     }
 
     @Test
