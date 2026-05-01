@@ -29,6 +29,6 @@ kafka:
   topics:
     orders-events: orders.events
 
-cache:
-  ttl:
-    order-tracking: 300
+tracking:
+  cache:
+    ttl-seconds: 300
