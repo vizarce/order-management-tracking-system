@@ -50,7 +50,7 @@ class OrderEventConsumerTest {
 
     private OrderTrackingDto sampleDto(String orderId, String status) {
         return new OrderTrackingDto(orderId, "cust-1", status,
-            BigDecimal.TEN, Collections.emptyList(), Instant.now(), Instant.now());
+            BigDecimal.TEN, Collections.emptyList(), Collections.emptyList(), Instant.now(), Instant.now());
     }
 
     // ── OrderCreatedEvent tests ────────────────────────────────────────────────

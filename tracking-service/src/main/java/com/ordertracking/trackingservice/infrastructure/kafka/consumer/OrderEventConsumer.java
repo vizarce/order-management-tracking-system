@@ -100,6 +100,7 @@ public class OrderEventConsumer {
             event.status(),
             event.totalAmount(),
             items,
+            Collections.emptyList(),
             event.occurredAt() != null ? event.occurredAt() : Instant.now(),
             Instant.now()
         );

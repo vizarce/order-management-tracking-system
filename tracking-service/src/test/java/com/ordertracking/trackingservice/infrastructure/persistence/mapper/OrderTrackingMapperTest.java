@@ -108,8 +108,9 @@ class OrderTrackingMapperTest {
     void fromDto_mapsAllFields() {
         Instant now = Instant.now();
         OrderTrackingDto dto = new OrderTrackingDto(
-            "ord-7", "cust-7", "PENDING", new BigDecimal("10.00"),
+            "ord-7", "cust-7", "RECEIVED", new BigDecimal("10.00"),
             List.of(new OrderTrackingDto.TrackingItemDto("prod-7", "Gadget", 1, new BigDecimal("10.00"))),
+            List.of(new OrderTrackingDto.TrackingEventDto(now, "RECEIVED", "Order received")),
             now, now
         );
 
@@ -117,16 +118,19 @@ class OrderTrackingMapperTest {
 
         assertThat(domain.getOrderId()).isEqualTo("ord-7");
         assertThat(domain.getCustomerId()).isEqualTo("cust-7");
-        assertThat(domain.getStatus()).isEqualTo(TrackingStatus.PENDING);
+        assertThat(domain.getStatus()).isEqualTo(TrackingStatus.RECEIVED);
         assertThat(domain.getTotalAmount()).isEqualByComparingTo(new BigDecimal("10.00"));
         assertThat(domain.getItems()).hasSize(1);
         assertThat(domain.getItems().get(0).getProductId()).isEqualTo("prod-7");
+        assertThat(domain.getEventLog()).hasSize(1);
+        assertThat(domain.getEventLog().get(0).getStatus()).isEqualTo(TrackingStatus.RECEIVED);
+        assertThat(domain.getEventLog().get(0).getDescription()).isEqualTo("Order received");
     }
 
     @Test
     void fromDto_nullStatusYieldsNullDomainStatus() {
         OrderTrackingDto dto = new OrderTrackingDto("ord-8", "cust-8", null,
-            BigDecimal.ZERO, List.of(), Instant.now(), Instant.now());
+            BigDecimal.ZERO, List.of(), null, Instant.now(), Instant.now());
 
         OrderTracking domain = mapper.fromDto(dto);
 
@@ -137,7 +141,7 @@ class OrderTrackingMapperTest {
 
     @Test
     void documentRoundTrip_domainToDocumentAndBack_preservesData() {
-        OrderTracking original = buildDomain("ord-9", "cust-9", TrackingStatus.CANCELLED);
+        OrderTracking original = buildDomain("ord-9", "cust-9", TrackingStatus.FAILED);
 
         OrderTracking restored = mapper.toDomain(mapper.toDocument(original));
 

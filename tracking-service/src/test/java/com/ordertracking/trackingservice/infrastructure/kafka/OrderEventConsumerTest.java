@@ -56,7 +56,7 @@ class OrderEventConsumerTest {
     @Test
     void restoresMdcFromKafkaHeaders() throws Exception {
         OrderTrackingDto savedDto = new OrderTrackingDto(
-            "order-1", "cust-1", "PENDING", BigDecimal.TEN, Collections.emptyList(), Instant.now(), Instant.now());
+            "order-1", "cust-1", "RECEIVED", BigDecimal.TEN, Collections.emptyList(), Collections.emptyList(), Instant.now(), Instant.now());
 
         AtomicReference<String> capturedTrace   = new AtomicReference<>();
         AtomicReference<String> capturedRequest = new AtomicReference<>();
@@ -86,7 +86,7 @@ class OrderEventConsumerTest {
     @Test
     void generatesFreshTraceIdWhenHeaderAbsent() throws Exception {
         OrderTrackingDto savedDto = new OrderTrackingDto(
-            "order-2", "cust-2", "PENDING", BigDecimal.TEN, Collections.emptyList(), Instant.now(), Instant.now());
+            "order-2", "cust-2", "RECEIVED", BigDecimal.TEN, Collections.emptyList(), Collections.emptyList(), Instant.now(), Instant.now());
 
         AtomicReference<String> capturedTrace = new AtomicReference<>();
         when(orderTrackingService.saveTracking(any())).thenAnswer(inv -> {
@@ -108,7 +108,7 @@ class OrderEventConsumerTest {
         MDC.put(MdcConstants.TRACE_ID, "pre-existing-trace");
 
         OrderTrackingDto savedDto = new OrderTrackingDto(
-            "order-3", "cust-3", "PENDING", BigDecimal.TEN, Collections.emptyList(), Instant.now(), Instant.now());
+            "order-3", "cust-3", "RECEIVED", BigDecimal.TEN, Collections.emptyList(), Collections.emptyList(), Instant.now(), Instant.now());
         when(orderTrackingService.saveTracking(any())).thenReturn(Mono.just(savedDto));
 
         String payload = objectMapper.writeValueAsString(buildEvent("order-3"));
@@ -124,7 +124,7 @@ class OrderEventConsumerTest {
     @Test
     void setsKafkaMetadataInMdc() throws Exception {
         OrderTrackingDto savedDto = new OrderTrackingDto(
-            "order-4", "cust-4", "PENDING", BigDecimal.TEN, Collections.emptyList(), Instant.now(), Instant.now());
+            "order-4", "cust-4", "RECEIVED", BigDecimal.TEN, Collections.emptyList(), Collections.emptyList(), Instant.now(), Instant.now());
 
         AtomicReference<String> capturedTopic     = new AtomicReference<>();
         AtomicReference<String> capturedPartition = new AtomicReference<>();

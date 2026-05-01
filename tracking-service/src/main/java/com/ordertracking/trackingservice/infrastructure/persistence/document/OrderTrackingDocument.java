@@ -19,6 +19,7 @@ public class OrderTrackingDocument {
     private String status;
     private BigDecimal totalAmount;
     private List<TrackingItemDoc> items;
+    private List<TrackingEventDoc> eventLog;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -36,6 +37,8 @@ public class OrderTrackingDocument {
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public List<TrackingItemDoc> getItems() { return items; }
     public void setItems(List<TrackingItemDoc> items) { this.items = items; }
+    public List<TrackingEventDoc> getEventLog() { return eventLog; }
+    public void setEventLog(List<TrackingEventDoc> eventLog) { this.eventLog = eventLog; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
@@ -56,5 +59,19 @@ public class OrderTrackingDocument {
         public void setQuantity(int quantity) { this.quantity = quantity; }
         public BigDecimal getUnitPrice() { return unitPrice; }
         public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+    }
+
+    public static class TrackingEventDoc {
+        private Instant timestamp;
+        private String status;
+        private String description;
+
+        public TrackingEventDoc() {}
+        public Instant getTimestamp() { return timestamp; }
+        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
     }
 }

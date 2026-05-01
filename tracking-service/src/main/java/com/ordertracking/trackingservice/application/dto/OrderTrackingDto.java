@@ -12,8 +12,10 @@ public record OrderTrackingDto(
     String status,
     BigDecimal totalAmount,
     List<TrackingItemDto> items,
+    List<TrackingEventDto> eventLog,
     Instant createdAt,
     Instant updatedAt
 ) {
     public record TrackingItemDto(String productId, String productName, int quantity, BigDecimal unitPrice) {}
+    public record TrackingEventDto(Instant timestamp, String status, String description) {}
 }

@@ -11,6 +11,7 @@ public class OrderTracking {
     private TrackingStatus status;
     private BigDecimal totalAmount;
     private List<TrackingItem> items;
+    private List<TrackingEvent> eventLog;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -28,6 +29,8 @@ public class OrderTracking {
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public List<TrackingItem> getItems() { return items; }
     public void setItems(List<TrackingItem> items) { this.items = items; }
+    public List<TrackingEvent> getEventLog() { return eventLog; }
+    public void setEventLog(List<TrackingEvent> eventLog) { this.eventLog = eventLog; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
@@ -55,5 +58,25 @@ public class OrderTracking {
         public void setQuantity(int quantity) { this.quantity = quantity; }
         public BigDecimal getUnitPrice() { return unitPrice; }
         public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+    }
+
+    public static class TrackingEvent {
+        private Instant timestamp;
+        private TrackingStatus status;
+        private String description;
+
+        public TrackingEvent() {}
+        public TrackingEvent(Instant timestamp, TrackingStatus status, String description) {
+            this.timestamp = timestamp;
+            this.status = status;
+            this.description = description;
+        }
+
+        public Instant getTimestamp() { return timestamp; }
+        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public TrackingStatus getStatus() { return status; }
+        public void setStatus(TrackingStatus status) { this.status = status; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
     }
 }
