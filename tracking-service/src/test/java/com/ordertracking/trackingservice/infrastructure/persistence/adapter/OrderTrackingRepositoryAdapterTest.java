@@ -47,7 +47,7 @@ class OrderTrackingRepositoryAdapterTest {
             .expectNextMatches(result ->
                 "order-save-1".equals(result.getOrderId()) &&
                 "cust-1".equals(result.getCustomerId()) &&
-                TrackingStatus.PENDING == result.getStatus()
+                TrackingStatus.RECEIVED == result.getStatus()
             )
             .verifyComplete();
 
@@ -81,7 +81,7 @@ class OrderTrackingRepositoryAdapterTest {
         OrderTracking domain = new OrderTracking();
         domain.setOrderId(orderId);
         domain.setCustomerId("cust-1");
-        domain.setStatus(TrackingStatus.PENDING);
+        domain.setStatus(TrackingStatus.RECEIVED);
         domain.setTotalAmount(new BigDecimal("50.00"));
         domain.setCreatedAt(Instant.now());
         domain.setUpdatedAt(Instant.now());

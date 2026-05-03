@@ -33,6 +33,16 @@ public class OrderTrackingMapper {
             }).collect(Collectors.toList());
             doc.setItems(itemDocs);
         }
+        if (domain.getEventLog() != null) {
+            List<OrderTrackingDocument.TrackingEventDoc> eventDocs = domain.getEventLog().stream().map(e -> {
+                OrderTrackingDocument.TrackingEventDoc d = new OrderTrackingDocument.TrackingEventDoc();
+                d.setTimestamp(e.getTimestamp());
+                d.setStatus(e.getStatus() != null ? e.getStatus().name() : null);
+                d.setDescription(e.getDescription());
+                return d;
+            }).collect(Collectors.toList());
+            doc.setEventLog(eventDocs);
+        }
         return doc;
     }
 
@@ -51,6 +61,16 @@ public class OrderTrackingMapper {
             }).collect(Collectors.toList());
             domain.setItems(items);
         }
+        if (doc.getEventLog() != null) {
+            List<OrderTracking.TrackingEvent> events = doc.getEventLog().stream().map(d -> {
+                return new OrderTracking.TrackingEvent(
+                    d.getTimestamp(),
+                    d.getStatus() != null ? TrackingStatus.valueOf(d.getStatus()) : null,
+                    d.getDescription()
+                );
+            }).collect(Collectors.toList());
+            domain.setEventLog(events);
+        }
         return domain;
     }
 
@@ -61,12 +81,23 @@ public class OrderTrackingMapper {
                 .collect(Collectors.toList())
             : Collections.emptyList();
 
+        List<OrderTrackingDto.TrackingEventDto> eventLog = domain.getEventLog() != null
+            ? domain.getEventLog().stream()
+                .map(e -> new OrderTrackingDto.TrackingEventDto(
+                    e.getTimestamp(),
+                    e.getStatus() != null ? e.getStatus().name() : null,
+                    e.getDescription()
+                ))
+                .collect(Collectors.toList())
+            : Collections.emptyList();
+
         return new OrderTrackingDto(
             domain.getOrderId(),
             domain.getCustomerId(),
             domain.getStatus() != null ? domain.getStatus().name() : null,
             domain.getTotalAmount(),
             items,
+            eventLog,
             domain.getCreatedAt(),
             domain.getUpdatedAt()
         );
@@ -85,6 +116,16 @@ public class OrderTrackingMapper {
                 .map(i -> new OrderTracking.TrackingItem(i.productId(), i.productName(), i.quantity(), i.unitPrice()))
                 .collect(Collectors.toList());
             domain.setItems(items);
+        }
+        if (dto.eventLog() != null) {
+            List<OrderTracking.TrackingEvent> events = dto.eventLog().stream()
+                .map(e -> new OrderTracking.TrackingEvent(
+                    e.timestamp(),
+                    e.status() != null ? TrackingStatus.valueOf(e.status()) : null,
+                    e.description()
+                ))
+                .collect(Collectors.toList());
+            domain.setEventLog(events);
         }
         return domain;
     }

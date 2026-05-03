@@ -39,8 +39,8 @@ class OrderTrackingServiceTest {
 
     @Test
     void shouldReturnTrackingFromCache() {
-        OrderTrackingDto cachedDto = new OrderTrackingDto("order-1", "cust-1", "PENDING",
-            BigDecimal.TEN, Collections.emptyList(), Instant.now(), Instant.now());
+        OrderTrackingDto cachedDto = new OrderTrackingDto("order-1", "cust-1", "RECEIVED",
+            BigDecimal.TEN, Collections.emptyList(), Collections.emptyList(), Instant.now(), Instant.now());
         when(valueOperations.get("tracking:order-1")).thenReturn(Mono.just(cachedDto));
 
         StepVerifier.create(service.getTracking("order-1"))
@@ -92,7 +92,7 @@ class OrderTrackingServiceTest {
         existing.setId("doc-1");
         existing.setOrderId("order-2");
         existing.setCustomerId("cust-2");
-        existing.setStatus(TrackingStatus.PENDING);
+        existing.setStatus(TrackingStatus.RECEIVED);
         existing.setTotalAmount(BigDecimal.TEN);
         existing.setCreatedAt(Instant.now());
         existing.setUpdatedAt(Instant.now());
@@ -136,8 +136,8 @@ class OrderTrackingServiceTest {
         when(redisTemplate.delete("tracking:order-2")).thenReturn(Mono.just(1L));
         when(valueOperations.set(eq("tracking:order-2"), any(), any())).thenReturn(Mono.just(true));
 
-        OrderTrackingDto dto = new OrderTrackingDto("order-2", "cust-1", "PENDING",
-            BigDecimal.TEN, Collections.emptyList(), Instant.now(), Instant.now());
+        OrderTrackingDto dto = new OrderTrackingDto("order-2", "cust-1", "RECEIVED",
+            BigDecimal.TEN, Collections.emptyList(), Collections.emptyList(), Instant.now(), Instant.now());
 
         StepVerifier.create(service.saveTracking(dto))
             .expectNextMatches(saved -> "order-2".equals(saved.orderId()))
@@ -153,7 +153,7 @@ class OrderTrackingServiceTest {
         OrderTracking domain = new OrderTracking();
         domain.setOrderId(orderId);
         domain.setCustomerId("cust-1");
-        domain.setStatus(TrackingStatus.PENDING);
+        domain.setStatus(TrackingStatus.RECEIVED);
         domain.setTotalAmount(BigDecimal.TEN);
         domain.setCreatedAt(Instant.now());
         domain.setUpdatedAt(Instant.now());

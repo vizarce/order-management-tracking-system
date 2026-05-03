@@ -32,8 +32,8 @@ class TrackingControllerTest {
     @Test
     void shouldReturnTrackingDtoForKnownOrderId() {
         OrderTrackingDto dto = new OrderTrackingDto(
-            "order-1", "cust-1", "PENDING",
-            BigDecimal.TEN, Collections.emptyList(),
+            "order-1", "cust-1", "RECEIVED",
+            BigDecimal.TEN, Collections.emptyList(), Collections.emptyList(),
             Instant.parse("2024-01-01T00:00:00Z"),
             Instant.parse("2024-01-01T00:00:00Z")
         );
@@ -47,7 +47,7 @@ class TrackingControllerTest {
             .expectBody()
             .jsonPath("$.orderId").isEqualTo("order-1")
             .jsonPath("$.customerId").isEqualTo("cust-1")
-            .jsonPath("$.status").isEqualTo("PENDING");
+            .jsonPath("$.status").isEqualTo("RECEIVED");
     }
 
     @Test
@@ -65,7 +65,7 @@ class TrackingControllerTest {
     void shouldReturnJsonContentType() {
         OrderTrackingDto dto = new OrderTrackingDto(
             "order-2", "cust-2", "SHIPPED",
-            BigDecimal.ONE, Collections.emptyList(),
+            BigDecimal.ONE, Collections.emptyList(), Collections.emptyList(),
             Instant.now(), Instant.now()
         );
         when(orderTrackingService.getTracking(eq("order-2"))).thenReturn(Mono.just(dto));
@@ -81,7 +81,7 @@ class TrackingControllerTest {
     void shouldPropagateCorrelationHeadersInResponse() {
         OrderTrackingDto dto = new OrderTrackingDto(
             "order-3", "cust-3", "DELIVERED",
-            BigDecimal.TEN, Collections.emptyList(),
+            BigDecimal.TEN, Collections.emptyList(), Collections.emptyList(),
             Instant.now(), Instant.now()
         );
         when(orderTrackingService.getTracking(eq("order-3"))).thenReturn(Mono.just(dto));
