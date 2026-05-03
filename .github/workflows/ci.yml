@@ -56,7 +56,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: OWASP Dependency-Check
-        if: ${{ github.event.inputs.run_dep_check == 'true' }}
+        # if: ${{ github.event.inputs.run_dep_check == 'true' }}
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: >
